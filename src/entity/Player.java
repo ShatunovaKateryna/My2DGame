@@ -11,17 +11,29 @@ import java.io.IOException;
 public class Player extends Entity {
     GamePanel gp;
     KeyHandler keyH;
+    public final int screenX;
+    public final int screenY;
+    int hasKey = 0;
 
     public Player(GamePanel gp, KeyHandler keyH) {
         this.gp = gp;
         this.keyH = keyH;
+        screenX = gp.screenWidth / 2 - (gp.tileSize) / 2;
+        screenY = gp.screenHeight / 2 - (gp.tileSize) / 2;
+        solidArea = new Rectangle();
+        solidArea.x = 8;
+        solidArea.y = 16;
+        solidAreaDefaultX = solidArea.x;
+        solidAreaDefaultY = solidArea.y;
+        solidArea.width = 32;
+        solidArea.height = 32;
         setDefaultValues();
         getPlayerImage();
     }
 
     public void setDefaultValues() {
-        x = 100;
-        y = 100;
+        worldX = gp.tileSize * 23;
+        worldY = gp.tileSize * 21;
         speed = 4;
         direction = "down";
     }
@@ -30,7 +42,7 @@ public class Player extends Entity {
         try {
             up1 = ImageIO.read(getClass().getResourceAsStream("/player/boy_up_1.png"));
             up2 = ImageIO.read(getClass().getResourceAsStream("/player/boy_up_2.png"));
-            down1 = ImageIO.read(getClass().getResourceAsStream("player/boy_down_1.png"));
+            down1 = ImageIO.read(getClass().getResourceAsStream("/player/boy_down_1.png"));
             down2 = ImageIO.read(getClass().getResourceAsStream("/player/boy_down_2.png"));
             left1 = ImageIO.read(getClass().getResourceAsStream("/player/boy_left_1.png"));
             left2 = ImageIO.read(getClass().getResourceAsStream("/player/boy_left_2.png"));
@@ -46,21 +58,82 @@ public class Player extends Entity {
     }
 
     public void update() {
-        if (keyH.upPressed == true) {
-            direction = "up";
-            y -= speed;
-        } else if (keyH.downPressed == true) {
-            direction = "down";
-            y += speed;
-        } else if (keyH.leftPressed == true) {
-            direction = "left";
-            x -= speed;
-        } else if (keyH.rightPressed == true) {
-            direction = "right";
-            x += speed;
-        }
+        if (keyH.upPressed == true || keyH.downPressed == true
+                || keyH.leftPressed == true || keyH.rightPressed == true) {
+            if (keyH.upPressed == true) {
+                direction = "up";
 
+            } else if (keyH.downPressed == true) {
+                direction = "down";
+
+            } else if (keyH.leftPressed == true) {
+                direction = "left";
+
+            } else if (keyH.rightPressed == true) {
+                direction = "right";
+
+            }
+
+            collisionOn = false;
+            gp.cChecker.checkTile(this);
+
+            int objIndex = gp.cChecker.checkObject(this, true);
+            pickUpObject(objIndex);
+
+            if (collisionOn == false) {
+                switch (direction) {
+                    case "up":
+                        worldY -= speed;
+                        break;
+                    case "down":
+                        worldY += speed;
+                        break;
+                    case "left":
+                        worldX -= speed;
+                        break;
+                    case "right":
+                        worldX += speed;
+                        break;
+                }
+
+                sprinteCounter++;
+                if (sprinteCounter > 12) {
+                    if (sprinteNum == 1) {
+                        sprinteNum = 2;
+                    } else if (sprinteNum == 2) {
+                        sprinteNum = 1;
+                    }
+                    sprinteCounter = 0;
+                }
+            }
+        }
     }
+
+    public void pickUpObject(int i) {
+        if (i != 999) {
+            String objectName = gp.obj[i].name;
+            switch (objectName) {
+                case "Key":
+                    gp.playSE(1);
+                    hasKey++;
+                    gp.obj[i] = null;
+                    break;
+                case "Door":
+                    gp.playSE(3);
+                    if (hasKey > 0) {
+                        gp.obj[i] = null;
+                        hasKey--;
+                    }
+                    break;
+                case "Boots":
+                    gp.playSE(2);
+                    speed += 1;
+                    gp.obj[i] = null;
+                    break;
+            }
+        }
+    }
+
 
     public void draw(Graphics2D g2) {
 //        g2.setColor(Color.WHITE);
@@ -68,18 +141,38 @@ public class Player extends Entity {
         BufferedImage image = null;
         switch (direction) {
             case "up":
-                image = up1;
+                if (sprinteNum == 1) {
+                    image = up1;
+                }
+                if (sprinteNum == 2) {
+                    image = up2;
+                }
                 break;
             case "down":
-                image = down1;
+                if (sprinteNum == 1) {
+                    image = down1;
+                }
+                if (sprinteNum == 2) {
+                    image = down2;
+                }
                 break;
             case "left":
-                image = left1;
+                if (sprinteNum == 1) {
+                    image = left1;
+                }
+                if (sprinteNum == 2) {
+                    image = left2;
+                }
                 break;
             case "right":
-                image = right1;
+                if (sprinteNum == 1) {
+                    image = right1;
+                }
+                if (sprinteNum == 2) {
+                    image = right2;
+                }
                 break;
         }
-        g2.drawImage(image, x,y,gp.titleSize, gp.titleSize, null);
+        g2.drawImage(image, screenX, screenY, gp.tileSize, gp.tileSize, null);
     }
 }
